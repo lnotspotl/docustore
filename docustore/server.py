@@ -7,17 +7,20 @@ import logging
 import os
 import re
 import shutil
+import socket
 import subprocess
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from mimetypes import guess_type
 from pathlib import Path
 from typing import TypedDict
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from huggingface_hub import HfApi, get_token
+from huggingface_hub import HfApi, get_token, snapshot_download
 from markdown_it import MarkdownIt
 
 
@@ -61,6 +64,38 @@ def tilde(p: Path) -> str:
 
 def sync_on() -> bool:
     return bool(REPO and get_token())
+
+
+def push(message: str) -> None:
+    api = HfApi()
+    api.create_repo(REPO, private=True, exist_ok=True)
+    api.upload_folder(
+        repo_id=REPO,
+        folder_path=cfg.docs,
+        repo_type="model",
+        commit_message=message,
+        commit_description=f"from {socket.gethostname()} {datetime.now().astimezone().isoformat(timespec='seconds')}",
+    )
+
+
+def pull() -> None:
+    snapshot_download(REPO, repo_type="model", local_dir=cfg.docs)
+
+
+_sync_lock = threading.Lock()
+
+
+def sync() -> bool:
+    """Push local changes, then pull new files; return False when a sync is already running."""
+    if not _sync_lock.acquire(blocking=False):
+        return False
+    try:
+        # push first: after it the repo holds every local edit, so the pull can only add files
+        push(f"Sync from {socket.gethostname()}")
+        pull()
+    finally:
+        _sync_lock.release()
+    return True
 
 
 _text_cache: dict[Path, tuple[float, str]] = {}
@@ -240,8 +275,13 @@ PAGE = (Path(__file__).parent / "page.html").read_text(encoding="utf-8")
 
 
 def render(title: str, body: str, current: str = "") -> str:
-    parts = {"title": html.escape(title), "tree": tree_html(current), "body": body}
-    return re.sub(r"\{\{(title|tree|body)\}\}", lambda m: parts[m[1]], PAGE)
+    sync_button = (
+        '<button class="hbtn" onclick="doSync(this)" title="Upload local changes, then download new ones">Sync</button>'
+        if sync_on()
+        else f'<button class="hbtn" disabled title="{html.escape(SYNC_OFF)}">Sync off</button>'
+    )
+    parts = {"title": html.escape(title), "tree": tree_html(current), "body": body, "sync": sync_button}
+    return re.sub(r"\{\{(title|tree|body|sync)\}\}", lambda m: parts[m[1]], PAGE)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -300,8 +340,26 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(500)
         logger.info("GET %s — %.1fms", self.path, (time.monotonic() - start) * 1000)
 
-    def send(self, data: bytes, ctype: str) -> None:
-        self.send_response(200)
+    def do_POST(self) -> None:
+        if self.path != "/sync":
+            return self.send_error(404)
+        # a cross-site form cannot set custom headers, so other web pages cannot trigger a sync
+        if self.headers.get("X-Docustore") != "1":
+            return self.send_error(403)
+        if not sync_on():
+            return self.send(SYNC_OFF.encode(), "text/plain; charset=utf-8", 400)
+        try:
+            synced = sync()
+        except Exception as e:
+            logger.exception("sync failed")
+            return self.send(str(e)[:500].encode(), "text/plain; charset=utf-8", 502)
+        logger.info("POST /sync — %s", "synced" if synced else "already running")
+        return self.send(
+            b"synced" if synced else b"a sync is already running", "text/plain; charset=utf-8", 200 if synced else 409
+        )
+
+    def send(self, data: bytes, ctype: str, status: int = 200) -> None:
+        self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()

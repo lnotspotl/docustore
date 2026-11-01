@@ -13,7 +13,7 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
-from huggingface_hub import HfApi, snapshot_download
+from huggingface_hub import HfApi
 
 from docustore import docx2pdf, server
 
@@ -41,7 +41,7 @@ def hf() -> HfApi:
 
 def pull() -> None:
     hf()
-    snapshot_download(server.REPO, repo_type="model", local_dir=server.cfg.docs)
+    server.pull()
 
 
 def ensure_docs() -> None:
@@ -108,15 +108,13 @@ def stop() -> None:
 
 
 def push(message: str) -> None:
-    api = hf()
-    api.create_repo(server.REPO, private=True, exist_ok=True)
-    api.upload_folder(
-        repo_id=server.REPO,
-        folder_path=server.cfg.docs,
-        repo_type="model",
-        commit_message=message,
-        commit_description=f"from {socket.gethostname()} {datetime.now().astimezone().isoformat(timespec='seconds')}",
-    )
+    hf()
+    server.push(message)
+
+
+def sync() -> None:
+    hf()
+    print("synced" if server.sync() else "docustore: a sync is already running in this process")
 
 
 def log() -> None:
@@ -236,6 +234,7 @@ COMMANDS = {
     "search": "find documents containing every term, in the path or the text (PDFs included)",
     "show": "print a document's text (text files verbatim, PDFs extracted)",
     "add": "copy a file into the documents, optionally under FOLDER; prints its path",
+    "sync": "push local changes as one commit, then pull new files (the page's Sync button)",
     "pull": "download the Hugging Face repo into the documents directory",
     "push": "upload the documents to the Hugging Face repo as one commit",
     "log": "commit history of the documents (provenance)",
@@ -278,6 +277,7 @@ def main() -> None:
     cmd["add"].add_argument("src", type=Path)
     cmd["add"].add_argument("folder", nargs="?", default="")
     cmd["add"].set_defaults(run=lambda a: add(a.src, a.folder))
+    cmd["sync"].set_defaults(run=lambda _: sync())
     cmd["pull"].set_defaults(run=lambda _: pull())
     cmd["push"].add_argument("message")
     cmd["push"].set_defaults(run=lambda a: push(a.message))

@@ -23,7 +23,7 @@ header .name i::after{content:"";position:absolute;inset:5px 6px;border:2px soli
 .field input[type=text]{border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;width:320px}
 .field svg{width:15px;height:15px;flex:none}
 header .sp{flex:1}
-.hbtn{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);cursor:pointer}.hbtn:hover{background:var(--soft);text-decoration:none}
+.hbtn{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);cursor:pointer}.hbtn:hover{background:var(--soft);text-decoration:none}.hbtn:disabled{color:var(--muted);cursor:default;background:var(--panel)}
 .wrap{display:flex;align-items:flex-start}
 nav.side{position:sticky;top:55px;width:270px;flex:none;max-height:calc(100vh - 55px);overflow:auto;padding:16px 14px 24px 20px;font-size:13.5px;border-right:1px solid var(--line)}
 .tree-toggle{font:inherit;font-size:12px;margin:0 0 10px;padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--muted);cursor:pointer}
@@ -65,6 +65,7 @@ mark{background:var(--mark);color:var(--markfg);border-radius:3px;padding:0 2px}
     <input type="text" id="search-input" placeholder="Search documents"
            onkeydown="if (event.key === 'Enter' && this.value.trim()) location = '/search?q=' + encodeURIComponent(this.value.trim())"></label>
   <span class="sp"></span>
+  {{sync}}
   <a class="hbtn" href="https://github.com/lnotspotl/docustore" target="_blank">GitHub</a>
   <button class="hbtn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
 </header>
@@ -73,6 +74,13 @@ mark{background:var(--mark);color:var(--markfg);border-radius:3px;padding:0 2px}
   <main><div id="page-content">{{body}}</div></main>
 </div>
 <script>
+function doSync(btn) {
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  fetch('/sync', {method: 'POST', headers: {'X-Docustore': '1'}})
+    .then(function(r) { return r.text().then(function(t) { if (!r.ok) throw new Error(t); }); })
+    .then(function() { location.reload(); })
+    .catch(function(e) { btn.disabled = false; btn.textContent = 'Sync failed'; btn.title = e.message; });
+}
 function toggleTree(btn) {
   var open = btn.textContent === 'Expand all';
   btn.parentNode.querySelectorAll('details').forEach(function(d) { d.open = open; });

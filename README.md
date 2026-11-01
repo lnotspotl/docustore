@@ -23,8 +23,9 @@ The page binds to localhost only.
 
 ### Sync
 Set `DOCUSTORE_REPO` to a Hugging Face repo id (`you/docs`) and give `HF_TOKEN` or `hf auth login`; without both, sync
-is off. `docustore push "message"` uploads the documents as one commit (creating the repo private), `docustore pull`
-downloads them, `docustore log` and the History tab list the commits. `push` never deletes; remove files on HF by
+is off. The page's Sync button, or `docustore sync`, uploads local changes as one commit and then downloads new files.
+`docustore push "message"` uploads with your own message (creating the repo private), `docustore pull` downloads, and
+`docustore log` and the History tab list the commits. `push` never deletes; remove files on HF by
 hand. `start` and `serve` pull first when the documents directory is missing.
 
 ### Agents
