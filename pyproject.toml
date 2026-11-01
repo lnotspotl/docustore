@@ -1,6 +1,6 @@
 [project]
 name = "docustore"
-version = "0.1.0"
+version = "0.2.0"
 description = "Personal document store: browse and search from a localhost page or an agent-friendly CLI, synced to a private Hugging Face repo"
 readme = "README.md"
 requires-python = ">=3.11"
