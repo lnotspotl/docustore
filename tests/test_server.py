@@ -2,6 +2,7 @@ import io
 import logging
 import os
 import re
+from email.message import Message
 from pathlib import Path
 
 import pytest
@@ -134,11 +135,13 @@ def test_render_escapes_the_title_and_inserts_body_and_tree(store):
     assert 'href="/doc/a.txt"' in page
 
 
-def _get(path: str) -> tuple[int, str, bytes]:
+def _get(path: str, method: str = "GET", headers: dict[str, str] | None = None) -> tuple[int, str, bytes]:
     h = server.Handler.__new__(server.Handler)
-    h.request_version, h.requestline, h.command, h.client_address = "HTTP/1.0", "", "GET", ("", 0)
-    h.wfile, h.path = io.BytesIO(), path
-    h.do_GET()
+    h.request_version, h.requestline, h.command, h.client_address = "HTTP/1.0", "", method, ("", 0)
+    h.wfile, h.path, h.headers = io.BytesIO(), path, Message()
+    for k, v in (headers or {}).items():
+        h.headers[k] = v
+    h.do_POST() if method == "POST" else h.do_GET()
     head, body = h.wfile.getvalue().split(b"\r\n\r\n", 1)
     status_line, *header_lines = head.decode().split("\r\n")
     headers = dict(line.split(": ", 1) for line in header_lines)
@@ -182,3 +185,31 @@ def test_get_rejects_missing_escaping_and_unknown_paths(store):
     assert _get("/raw/missing")[0] == 404
     assert _get("/raw/../pyproject.toml")[0] == 404
     assert _get("/nope")[0] == 404
+
+
+@pytest.mark.usefixtures("store")
+def test_post_sync_needs_the_page_header_and_sync_configured(monkeypatch):
+    calls = []
+    monkeypatch.setattr(server, "sync_on", lambda: False)
+    monkeypatch.setattr(server, "push", lambda _msg: calls.append("push"))
+    monkeypatch.setattr(server, "pull", lambda: calls.append("pull"))
+    assert _get("/sync", "POST")[0] == 403
+    assert _get("/sync", "POST", {"X-Docustore": "1"})[0] == 400
+    monkeypatch.setattr(server, "sync_on", lambda: True)
+    assert _get("/sync", "POST", {"X-Docustore": "1"})[0] == 200
+    assert calls == ["push", "pull"]
+    assert _get("/nope", "POST", {"X-Docustore": "1"})[0] == 404
+
+
+def test_sync_refuses_to_run_twice_at_once(monkeypatch):
+    monkeypatch.setattr(server, "push", lambda _msg: pytest.fail("pushed while a sync was running"))
+    with server._sync_lock:
+        assert server.sync() is False
+
+
+@pytest.mark.usefixtures("store")
+def test_render_disables_the_sync_button_without_a_repo(monkeypatch):
+    monkeypatch.setattr(server, "sync_on", lambda: False)
+    assert "disabled" in server.render("t", "")
+    monkeypatch.setattr(server, "sync_on", lambda: True)
+    assert 'onclick="doSync(this)"' in server.render("t", "")
