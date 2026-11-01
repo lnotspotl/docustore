@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+root=$(dirname -- "$(dirname -- "$(readlink -f -- "$0")")")
+PYTHONPATH="$root" exec pixi run --manifest-path "$root/pixi.toml" python -m docustore "$@"

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{title}} - docustore</title>
+<style>
+:root{color-scheme:light;--bg:#f7f7f5;--panel:#fff;--fg:#1d1f21;--muted:#6b7075;--line:#e3e3df;--soft:#efefec;--link:#2357c6;--mark:#ffe58a;--markfg:#1d1f21;--accent:#2f7d57;--accent-soft:#e3f1e9;--err:#c62828;--shadow:0 1px 2px #0000000d,0 2px 8px #0000000a}
+[data-theme=dark]{color-scheme:dark;--bg:#111315;--panel:#181b1e;--fg:#e7e9ea;--muted:#9aa1a7;--line:#2a2f33;--soft:#20252a;--link:#8ab4f8;--mark:#d9a520;--markfg:#111;--accent:#6fcf97;--accent-soft:#1d3327;--err:#ff7b7b;--shadow:none}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header .name{display:flex;align-items:center;gap:8px;font-weight:650;font-size:17px;color:var(--fg)}header .name:hover{text-decoration:none}
+header .name i{width:22px;height:22px;border-radius:6px;background:var(--accent);display:inline-block;position:relative}
+header .name i::after{content:"";position:absolute;inset:5px 6px;border:2px solid var(--panel);border-top-width:4px;border-radius:2px}
+.tabs{display:flex;gap:2px;margin-right:8px}
+.tabs a{padding:5px 11px;border-radius:7px;color:var(--muted);font-size:14px;font-weight:500}.tabs a:hover{background:var(--soft);text-decoration:none}
+.tabs a.on{background:var(--accent-soft);color:var(--accent)}
+.field{display:flex;align-items:center;gap:6px;padding:0 10px;height:34px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--muted)}
+.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field input[type=text]{border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;width:320px}
+.field svg{width:15px;height:15px;flex:none}
+header .sp{flex:1}
+.hbtn{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);cursor:pointer}.hbtn:hover{background:var(--soft);text-decoration:none}
+.wrap{display:flex;align-items:flex-start}
+nav.side{position:sticky;top:55px;width:270px;flex:none;max-height:calc(100vh - 55px);overflow:auto;padding:16px 14px 24px 20px;font-size:13.5px;border-right:1px solid var(--line)}
+.tree-toggle{font:inherit;font-size:12px;margin:0 0 10px;padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--muted);cursor:pointer}
+.tree summary{cursor:pointer;font-weight:550;padding:3px 4px;border-radius:5px;list-style:none;color:var(--fg)}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary::before{content:"▸";display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+.tree details[open]>summary::before{transform:rotate(90deg)}
+.tree summary:hover,.tree a:hover{background:var(--soft);text-decoration:none}
+.tree details>*:not(summary){margin-left:14px}
+.tree a{display:block;padding:3px 6px;border-radius:5px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tree ul{margin:2px 0;padding-left:0;list-style:none}.tree li a::before{content:"·";color:var(--muted);margin-right:6px}
+main{flex:1;min-width:0;padding:24px 36px 48px;max-width:1100px}
+.title{font-weight:650;font-size:24px;letter-spacing:-.01em;margin:0 0 6px}
+.meta{color:var(--muted);font-size:13px;margin:0 0 18px}
+.viewer{width:100%;height:calc(100vh - 170px);border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.viewer-img{max-width:100%;border:1px solid var(--line);border-radius:10px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font-size:13px;line-height:1.45;white-space:pre-wrap}
+table{border-collapse:collapse;background:var(--panel);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+td,th{border-bottom:1px solid var(--line);padding:7px 12px;text-align:left;font-size:14px}th{background:var(--soft);font-weight:600}
+.hit{margin:0 0 10px;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.hit a{font-weight:600}.snippet{color:var(--muted);font-size:13px;margin-top:3px;overflow-wrap:anywhere}
+mark{background:var(--mark);color:var(--markfg);border-radius:3px;padding:0 2px}
+#page-content>h2{font-size:15px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:24px 0 8px}
+#page-content>.tree{padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.notes,.md{padding:6px 20px 14px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;box-shadow:var(--shadow)}
+.md{border-left-width:1px}
+.notes h1,.notes h2,.notes h3{margin:14px 0 6px;font-weight:650}.notes h1{font-size:19px}.notes h2{font-size:16px}
+.notes p,.notes ul,.notes ol{margin:6px 0}code{font-size:13px;background:var(--soft);padding:1px 5px;border-radius:4px}
+@media (max-width:800px){nav.side{display:none}main{padding:18px 16px}.field input[type=text]{width:140px}}
+</style>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('docustore-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));</script>
+</head>
+<body>
+<header>
+  <a class="name" href="/"><i></i>docustore</a>
+  <nav class="tabs"><a href="/">Documents</a><a href="/history">History</a></nav>
+  <label class="field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="text" id="search-input" placeholder="Search documents"
+           onkeydown="if (event.key === 'Enter' && this.value.trim()) location = '/search?q=' + encodeURIComponent(this.value.trim())"></label>
+  <span class="sp"></span>
+  <a class="hbtn" href="https://github.com/lnotspotl/docustore" target="_blank">GitHub</a>
+  <button class="hbtn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+</header>
+<div class="wrap">
+  <nav class="side">{{tree}}</nav>
+  <main><div id="page-content">{{body}}</div></main>
+</div>
+<script>
+function toggleTree(btn) {
+  var open = btn.textContent === 'Expand all';
+  btn.parentNode.querySelectorAll('details').forEach(function(d) { d.open = open; });
+  btn.textContent = open ? 'Collapse all' : 'Expand all';
+}
+function toggleTheme() {
+  var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('docustore-theme', next);
+}
+document.querySelectorAll('.tabs a').forEach(function(a) {
+  if (a.getAttribute('href') === (location.pathname === '/history' ? '/history' : '/')) a.classList.add('on');
+});
+var q = new URLSearchParams(location.search).get('q'); if (q) document.getElementById('search-input').value = q;
+</script>
+</body>
+</html>

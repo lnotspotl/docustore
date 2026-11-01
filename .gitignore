@@ -1,0 +1,9 @@
+docs/
+.pixi/
+.venv/
+__pycache__/
+pixi.lock
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+dist/

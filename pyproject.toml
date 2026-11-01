@@ -1,0 +1,47 @@
+[project]
+name = "docustore"
+version = "0.1.0"
+description = "Personal document store: browse and search from a localhost page or an agent-friendly CLI, synced to a private Hugging Face repo"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["huggingface_hub>=1.24", "markdown-it-py"]
+
+[project.scripts]
+docustore = "docustore.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+include = ["*.py"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812", "ISC001",  # clash with the formatter
+    "D1",                # docstrings are optional
+    "CPY",               # no copyright headers
+    "EM", "TRY003",      # exception messages stay inline
+    "S603", "S607",      # subprocess with list args; pdftotext/pdfinfo/soffice resolve on the pixi PATH
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "SLF001", "PLR2004", "ANN"]
+"docustore/{__main__,docx2pdf}.py" = ["T20"]  # CLI commands; stdout is their output
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+strict = true
+files = ["docustore", "tests"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

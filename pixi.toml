@@ -1,0 +1,20 @@
+[workspace]
+name = "docustore"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+python = ">=3.11"
+pytest = "*"
+ruff = "*"
+mypy = "*"
+uv = "*"
+huggingface_hub = ">=1.24"
+markdown-it-py = "*"
+poppler = "*"
+
+[tasks]
+lint = "ruff format --check . && ruff check . && mypy"
+fmt = "ruff format . && ruff check --fix ."
+test = "python -m pytest tests -q"
+wheel = "uv build --wheel"
